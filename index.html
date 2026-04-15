@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>園區職缺輪班需求分析</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: "Microsoft JhengHei", sans-serif; background: #f4f7f6; padding: 20px; color: #333; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #2c3e50; }
+        .loading { text-align: center; font-size: 1.2em; color: #666; margin: 50px; }
+        .chart-container { position: relative; height: 70vh; width: 100%; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>新竹科學園區：112 vs 113 年度輪班比例對比</h1>
+    <div id="loader" class="loading">資料讀取中，請稍候...</div>
+    <div class="chart-container">
+        <canvas id="shiftChart"></canvas>
+    </div>
+</div>
+
+<script>
+    // 【重要】請在此處貼上你成功的 GAS 網頁應用程式 URL
+    const gasUrl = "https://script.google.com/macros/s/AKfycbyFLLgEiLjCkwPIAdj7LfUZObFhcXPRBmJIwBcVddA0kINi-KB7CUtjxnluSWDiEogikQ/exec";
+
+    async function init() {
+        try {
+            const response = await fetch(gasUrl);
+            const data = await response.json();
+            document.getElementById('loader').style.display = 'none';
+            render(data);
+        } catch (error) {
+            document.getElementById('loader').innerText = "資料載入失敗，請檢查 API 設定";
+            console.error(error);
+        }
+    }
+
+    function render(allData) {
+        // 取得項目名稱（以 2024 年為基準）
+        const labels = allData["2024"].map(item => item["項目別"]).filter(name => name);
+        
+        // 提取兩年的「需要輪班_是_百分比」
+        const data2023 = allData["2023"].map(item => parseFloat(item["僱用條件_需要輪班_是_百分比"]) || 0);
+        const data2024 = allData["2024"].map(item => parseFloat(item["僱用條件_需要輪班_是_百分比"]) || 0);
+
+        const ctx = document.getElementById('shiftChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: '112年度 (%)',
+                        data: data2023,
+                        backgroundColor: 'rgba(200, 200, 200, 0.6)',
+                        borderColor: 'rgba(200, 200, 200, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: '113年度 (%)',
+                        data: data2024,
+                        backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                indexAxis: 'y', // 橫向顯示方便看標籤
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { beginAtZero: true, max: 100, title: { display: true, text: '輪班比例 (%)' } }
+                },
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: { mode: 'index', intersect: false }
+                }
+            }
+        });
+    }
+
+    init();
+</script>
+
+</body>
+</html>
